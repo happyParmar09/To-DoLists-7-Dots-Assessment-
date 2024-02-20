@@ -10,6 +10,7 @@ import SwiftUI
 struct Task: Identifiable {
     var name: String
     var isDone: Bool = false
+    var isSwiped: Bool = false
     let id = UUID()
 }
 struct TaskView: View {
@@ -31,13 +32,13 @@ struct TaskView: View {
         .cornerRadius(3)
         .onTapGesture {
             task.isDone.toggle()
-            print("item Tapped")
         }
     }
 }
 struct ContentView: View {
     @State var datas = [Task]()
     @State private var newTask: String = ""
+    @State private var isRowSwiped = [Bool]()
     
         var body: some View {
             NavigationView{
@@ -52,20 +53,32 @@ struct ContentView: View {
                         .bold()
                     Spacer()
                     List  {
-                        ForEach($datas) { $data in
-                                
-                                TaskView(task: $data)
+                        ForEach(datas.indices, id: \.self) { index in
+                                    let task = datas[index]
+                                    let isSwiped = isRowSwiped[index]
+                                                
+                                    TaskView(task: $datas[index])
                                     .swipeActions(edge: .trailing ,allowsFullSwipe: true) {
+                                        
                                         Button("Delete"){
-                                            if let index = datas.firstIndex(where: { $0.id == data.id }) {
-                                                                datas.remove(at: index)
-                                                            }
+                                            if let index = datas.firstIndex(where: { $0.id == datas[index].id }) {
+                                                    datas.remove(at: index)
+                                                    isRowSwiped.remove(at: index)
+                                            }
                                         }
                                         .tint(.red)
                                     }
-                                .listRowBackground(Color.white)
+                                .listRowBackground(isSwiped ? Color.red.opacity(0.3) : Color.white)
                                 .listRowSpacing(10)
                                 .cornerRadius(6)
+                                .onAppear {
+                                        if isRowSwiped.count <= index {
+                                            isRowSwiped.append(false) // Initialize isRowSwiped array with false values
+                                        }
+                                }
+                                .onChange(of: isRowSwiped[index]) { newValue in
+                                            datas[index].isSwiped = newValue // Update Task's isSwiped property
+                                }
                                 
                             }
                         .onDelete(perform: delete)
@@ -90,6 +103,7 @@ struct ContentView: View {
                             
                             if newTask.count != 0 {
                                 self.datas.append(Task(name: newTask , isDone: false))
+                                self.isRowSwiped.append(false)
                             }
                             newTask = ""
                         }
